@@ -1,3 +1,10 @@
+# Vim files
+*.sw[po]
+*~
+
+# build directories
+build*/
+
 # Compiled Object files
 *.slo
 *.lo
