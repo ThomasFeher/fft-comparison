@@ -11,9 +11,7 @@ namespace {
 	uint32_t num = 1;
 	uint32_t fft_size = 48000;
 	uint32_t conv_ir_size = 72000;
-	//uint32_t conv_ir_size = 10;
 	uint32_t conv_sig_size = 5760000;
-	//uint32_t conv_sig_size = 48000;
 }
 
 duration<double> Convolution(uint32_t ir_size, uint32_t sig_size) {
@@ -86,27 +84,16 @@ duration<double> ArmadilloFftPow2Conv(uint32_t ir_size, uint32_t sig_size) {
 
 duration<double> ArmadilloFft(uint32_t fft_size) {
 	arma::fvec input {arma::randn<arma::fvec>(fft_size)};
-	arma::cx_fvec output;
+	arma::cx_fvec output_fd;
+	arma::cx_fvec output_td;
 
 	auto begin = high_resolution_clock::now();
 	for (uint32_t cnt=0;cnt<::num;++cnt) {
-		output = arma::fft(input);
+		output_fd = arma::fft(input);
+		output_td = arma::ifft(output_fd);
+
 	}
-	std::vector<float> output_copy = arma::conv_to<std::vector<float>>::from(arma::real(output));
-	auto end = high_resolution_clock::now();
-
-	return end - begin;
-}
-
-duration<double> ArmadilloIFft(uint32_t fft_size) {
-	arma::cx_fvec input {arma::randn<arma::cx_fvec>(fft_size)};
-	arma::cx_fvec output;
-
-	auto begin = high_resolution_clock::now();
-	for (uint32_t cnt=0;cnt<::num;++cnt) {
-		output = arma::ifft(input);
-	}
-	std::vector<float> output_copy = arma::conv_to<std::vector<float>>::from(arma::real(output));
+	std::vector<float> output_copy = arma::conv_to<std::vector<float>>::from(arma::real(output_td));
 	auto end = high_resolution_clock::now();
 
 	return end - begin;
@@ -115,9 +102,6 @@ duration<double> ArmadilloIFft(uint32_t fft_size) {
 int main(int argc, char* argv[]) {
 	auto arma_fft_time = ArmadilloFft(::fft_size);
 	std::cout << "Armadillo FFT: " << arma_fft_time.count() << std::endl;
-
-	auto arma_ifft_time = ArmadilloIFft(::fft_size);
-	std::cout << "Armadillo iFFT: " << arma_ifft_time.count() << std::endl;
 
 	auto arma_fft_pow2_conv_time = ArmadilloFftPow2Conv(::conv_ir_size, ::conv_sig_size);
 	std::cout << "Armadillo FFT-Pow2-convolution: " << arma_fft_pow2_conv_time.count() << std::endl;
