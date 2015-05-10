@@ -4,6 +4,9 @@
 
 #include <armadillo>
 
+using std::chrono::high_resolution_clock;
+using std::chrono::duration;
+
 namespace {
 	uint32_t num = 1;
 	uint32_t fft_size = 48000;
@@ -13,13 +16,13 @@ namespace {
 	//uint32_t conv_sig_size = 48000;
 }
 
-std::chrono::duration<double> Convolution(uint32_t ir_size, uint32_t sig_size) {
+duration<double> Convolution(uint32_t ir_size, uint32_t sig_size) {
 	arma::fvec sig {arma::randn<arma::fvec>(sig_size+ir_size-1)};
 	sig.subvec(sig_size,sig_size+ir_size-2) = arma::zeros<arma::fvec>(ir_size-1);
 	arma::fvec ir {arma::randn<arma::fvec>(ir_size)};
 	arma::fvec output (sig_size+ir_size-1);
 
-	std::chrono::high_resolution_clock::time_point begin = std::chrono::high_resolution_clock::now();
+	auto begin = high_resolution_clock::now();
 	for (uint32_t cnt=0;cnt<::num;++cnt) {
 		for (uint32_t sample_cnt=0;sample_cnt<sig_size;++sample_cnt) {
 			for (uint32_t ir_cnt=0;ir_cnt<ir_size;++ir_cnt) {
@@ -28,83 +31,83 @@ std::chrono::duration<double> Convolution(uint32_t ir_size, uint32_t sig_size) {
 		}
 	}
 	std::vector<float> output_copy = arma::conv_to<std::vector<float>>::from(output);
-	std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+	auto end = high_resolution_clock::now();
 
 	return end - begin;
 }
 
-std::chrono::duration<double> ArmadilloConv(uint32_t ir_size, uint32_t sig_size) {
+duration<double> ArmadilloConv(uint32_t ir_size, uint32_t sig_size) {
 	arma::fvec sig {arma::randn<arma::fvec>(sig_size+ir_size-1)};
 	sig.subvec(sig_size,sig_size+ir_size-2) = arma::zeros<arma::fvec>(ir_size-1);
 	arma::fvec ir {arma::randn<arma::fvec>(ir_size)};
 	arma::fvec output;
 
-	std::chrono::high_resolution_clock::time_point begin = std::chrono::high_resolution_clock::now();
+	auto begin = high_resolution_clock::now();
 	for (uint32_t cnt=0;cnt<::num;++cnt) {
 		output = arma::conv(sig, ir);
 	}
 	std::vector<float> output_copy = arma::conv_to<std::vector<float>>::from(output);
-	std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+	auto end = high_resolution_clock::now();
 
 	return end - begin;
 }
 
-std::chrono::duration<double> ArmadilloFftConv(uint32_t ir_size, uint32_t sig_size) {
+duration<double> ArmadilloFftConv(uint32_t ir_size, uint32_t sig_size) {
 	arma::fvec sig {arma::randn<arma::fvec>(sig_size+ir_size-1)};
 	sig.subvec(sig_size,sig_size+ir_size-2) = arma::zeros<arma::fvec>(ir_size-1);
 	arma::fvec ir {arma::randn<arma::fvec>(ir_size)};
 	arma::cx_fvec output;
 
-	std::chrono::high_resolution_clock::time_point begin = std::chrono::high_resolution_clock::now();
+	auto begin = high_resolution_clock::now();
 	for (uint32_t cnt=0;cnt<::num;++cnt) {
 		output = arma::ifft(arma::fft(sig) % arma::fft(ir,sig_size+ir_size-1));
 	}
 	std::vector<float> output_copy = arma::conv_to<std::vector<float>>::from(arma::real(output));
-	std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+	auto end = high_resolution_clock::now();
 
 	return end - begin;
 }
 
-std::chrono::duration<double> ArmadilloFftPow2Conv(uint32_t ir_size, uint32_t sig_size) {
+duration<double> ArmadilloFftPow2Conv(uint32_t ir_size, uint32_t sig_size) {
 	uint32_t size = pow(2,ceil(log2(sig_size+ir_size-1)));
 	arma::fvec sig {arma::randn<arma::fvec>(sig_size)};
 	arma::fvec ir {arma::randn<arma::fvec>(ir_size)};
 	arma::cx_fvec output;
 
-	std::chrono::high_resolution_clock::time_point begin = std::chrono::high_resolution_clock::now();
+	auto begin = high_resolution_clock::now();
 	for (uint32_t cnt=0;cnt<::num;++cnt) {
 		output = arma::ifft(arma::fft(sig,size) % arma::fft(ir,size));
 	}
 	std::vector<float> output_copy = arma::conv_to<std::vector<float>>::from(arma::real(output));
-	std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+	auto end = high_resolution_clock::now();
 
 	return end - begin;
 }
 
-std::chrono::duration<double> ArmadilloFft(uint32_t fft_size) {
+duration<double> ArmadilloFft(uint32_t fft_size) {
 	arma::fvec input {arma::randn<arma::fvec>(fft_size)};
 	arma::cx_fvec output;
 
-	std::chrono::high_resolution_clock::time_point begin = std::chrono::high_resolution_clock::now();
+	auto begin = high_resolution_clock::now();
 	for (uint32_t cnt=0;cnt<::num;++cnt) {
 		output = arma::fft(input);
 	}
 	std::vector<float> output_copy = arma::conv_to<std::vector<float>>::from(arma::real(output));
-	std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+	auto end = high_resolution_clock::now();
 
 	return end - begin;
 }
 
-std::chrono::duration<double> ArmadilloIFft(uint32_t fft_size) {
+duration<double> ArmadilloIFft(uint32_t fft_size) {
 	arma::cx_fvec input {arma::randn<arma::cx_fvec>(fft_size)};
 	arma::cx_fvec output;
 
-	std::chrono::high_resolution_clock::time_point begin = std::chrono::high_resolution_clock::now();
+	auto begin = high_resolution_clock::now();
 	for (uint32_t cnt=0;cnt<::num;++cnt) {
 		output = arma::ifft(input);
 	}
 	std::vector<float> output_copy = arma::conv_to<std::vector<float>>::from(arma::real(output));
-	std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+	auto end = high_resolution_clock::now();
 
 	return end - begin;
 }
