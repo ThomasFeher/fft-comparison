@@ -1,6 +1,7 @@
 #include <chrono>
 #include <iostream>
 #include <vector>
+#include <utility> // std::pair
 
 #include <armadillo>
 
@@ -14,30 +15,28 @@ namespace {
 	uint32_t conv_sig_size = 5760000;
 }
 
-duration<double> Convolution(uint32_t ir_size, uint32_t sig_size) {
-	arma::fvec sig {arma::randn<arma::fvec>(sig_size+ir_size-1)};
-	sig.subvec(sig_size,sig_size+ir_size-2) = arma::zeros<arma::fvec>(ir_size-1);
-	arma::fvec ir {arma::randn<arma::fvec>(ir_size)};
-	arma::fvec output (sig_size+ir_size-1);
+std::pair<duration<double>, arma::fvec> Convolution(arma::fvec sig, arma::fvec ir) {
+	size_t size = (::conv_sig_size+::conv_ir_size-1);
+	ir = arma::flipud(ir);
+	arma::fvec sig_new = arma::zeros<arma::fvec>(::conv_sig_size + 2*(::conv_ir_size-1));
+	sig_new.subvec(::conv_ir_size - 1, ::conv_sig_size + ::conv_ir_size -2) = sig;
+	arma::fvec output (::conv_sig_size + ::conv_ir_size - 1, arma::fill::zeros);
 
 	auto begin = high_resolution_clock::now();
 	for (uint32_t cnt=0;cnt<::num;++cnt) {
-		for (uint32_t sample_cnt=0;sample_cnt<sig_size;++sample_cnt) {
-			for (uint32_t ir_cnt=0;ir_cnt<ir_size;++ir_cnt) {
-				output[sample_cnt] += sig[sample_cnt+ir_cnt] * ir[ir_cnt];
+		for (uint32_t sample_cnt=0;sample_cnt<size;++sample_cnt) {
+			for (uint32_t ir_cnt=0;ir_cnt<::conv_ir_size;++ir_cnt) {
+				output[sample_cnt] += sig_new[sample_cnt+ir_cnt] * ir[ir_cnt];
 			}
 		}
 	}
 	std::vector<float> output_copy = arma::conv_to<std::vector<float>>::from(output);
 	auto end = high_resolution_clock::now();
 
-	return end - begin;
+	return std::make_pair(end - begin, output);
 }
 
-duration<double> ArmadilloConv(uint32_t ir_size, uint32_t sig_size) {
-	arma::fvec sig {arma::randn<arma::fvec>(sig_size+ir_size-1)};
-	sig.subvec(sig_size,sig_size+ir_size-2) = arma::zeros<arma::fvec>(ir_size-1);
-	arma::fvec ir {arma::randn<arma::fvec>(ir_size)};
+std::pair<duration<double>, arma::fvec> ArmadilloConv(arma::fvec sig, arma::fvec ir) {
 	arma::fvec output;
 
 	auto begin = high_resolution_clock::now();
@@ -47,29 +46,25 @@ duration<double> ArmadilloConv(uint32_t ir_size, uint32_t sig_size) {
 	std::vector<float> output_copy = arma::conv_to<std::vector<float>>::from(output);
 	auto end = high_resolution_clock::now();
 
-	return end - begin;
+	return std::make_pair(end - begin, output);
 }
 
-duration<double> ArmadilloFftConv(uint32_t ir_size, uint32_t sig_size) {
-	arma::fvec sig {arma::randn<arma::fvec>(sig_size+ir_size-1)};
-	sig.subvec(sig_size,sig_size+ir_size-2) = arma::zeros<arma::fvec>(ir_size-1);
-	arma::fvec ir {arma::randn<arma::fvec>(ir_size)};
+std::pair<duration<double>, arma::fvec> ArmadilloFftConv(arma::fvec sig, arma::fvec ir) {
 	arma::cx_fvec output;
+	size_t size = sig.size() + ir.size() - 1;
 
 	auto begin = high_resolution_clock::now();
 	for (uint32_t cnt=0;cnt<::num;++cnt) {
-		output = arma::ifft(arma::fft(sig) % arma::fft(ir,sig_size+ir_size-1));
+		output = arma::ifft(arma::fft(sig, size) % arma::fft(ir, size));
 	}
 	std::vector<float> output_copy = arma::conv_to<std::vector<float>>::from(arma::real(output));
 	auto end = high_resolution_clock::now();
 
-	return end - begin;
+	return std::make_pair(end - begin, arma::real(output));
 }
 
-duration<double> ArmadilloFftPow2Conv(uint32_t ir_size, uint32_t sig_size) {
-	uint32_t size = pow(2,ceil(log2(sig_size+ir_size-1)));
-	arma::fvec sig {arma::randn<arma::fvec>(sig_size)};
-	arma::fvec ir {arma::randn<arma::fvec>(ir_size)};
+std::pair<duration<double>, arma::fvec> ArmadilloFftPow2Conv(arma::fvec sig, arma::fvec ir) {
+	uint32_t size = pow(2,ceil(log2(::conv_sig_size + ::conv_ir_size - 1)));
 	arma::cx_fvec output;
 
 	auto begin = high_resolution_clock::now();
@@ -79,11 +74,10 @@ duration<double> ArmadilloFftPow2Conv(uint32_t ir_size, uint32_t sig_size) {
 	std::vector<float> output_copy = arma::conv_to<std::vector<float>>::from(arma::real(output));
 	auto end = high_resolution_clock::now();
 
-	return end - begin;
+	return std::make_pair(end - begin, arma::real(output.subvec(0, ::conv_sig_size + ::conv_ir_size - 2)));
 }
 
-duration<double> ArmadilloFft(uint32_t fft_size) {
-	arma::fvec input {arma::randn<arma::fvec>(fft_size)};
+std::pair<duration<double>,arma::fvec> ArmadilloFft(arma::fvec input) {
 	arma::cx_fvec output_fd;
 	arma::cx_fvec output_td;
 
@@ -96,22 +90,41 @@ duration<double> ArmadilloFft(uint32_t fft_size) {
 	std::vector<float> output_copy = arma::conv_to<std::vector<float>>::from(arma::real(output_td));
 	auto end = high_resolution_clock::now();
 
-	return end - begin;
+	return std::make_pair(end - begin,arma::real(output_td));
 }
 
 int main(int argc, char* argv[]) {
-	auto arma_fft_time = ArmadilloFft(::fft_size);
-	std::cout << "Armadillo FFT: " << arma_fft_time.count() << std::endl;
 
-	auto arma_fft_pow2_conv_time = ArmadilloFftPow2Conv(::conv_ir_size, ::conv_sig_size);
-	std::cout << "Armadillo FFT-Pow2-convolution: " << arma_fft_pow2_conv_time.count() << std::endl;
+	// generate input signals
+	arma::fvec sig {arma::randn<arma::fvec>(::conv_sig_size)};
+	arma::fvec ir {arma::randn<arma::fvec>(::conv_ir_size)};
 
-	auto arma_fft_conv_time = ArmadilloFftConv(::conv_ir_size, ::conv_sig_size);
-	std::cout << "Armadillo FFT-convolution: " << arma_fft_conv_time.count() << std::endl;
+	auto result_arma_fft = ArmadilloFft(sig);
+	std::cout << "Armadillo FFT: " << result_arma_fft.first.count() << std::endl;
 
-	auto arma_conv_time = ArmadilloConv(::conv_ir_size, ::conv_sig_size);
-	std::cout << "Armadillo convolution: " << arma_conv_time.count() << std::endl;
+	// normal convolution, this is our reference output
+	auto result_conv = Convolution(sig, ir);
+	std::cout << "convolution: " << result_conv.first.count()
+			  << std::endl;
 
-	auto conv_time = Convolution(::conv_ir_size, ::conv_sig_size);
-	std::cout << "convolution: " << conv_time.count() << std::endl;
+	auto result_arma_fft_pow2_conv = ArmadilloFftPow2Conv(sig, ir);
+	std::cout << "Armadillo FFT-Pow2-convolution: "
+		      << result_arma_fft_pow2_conv.first.count()
+			  << "\n\tmaximum difference of result: "
+			  << arma::abs(result_conv.second - result_arma_fft_pow2_conv.second).max()
+			  << std::endl;
+
+	auto result_arma_fft_conv = ArmadilloFftConv(sig, ir);
+	std::cout << "Armadillo FFT-convolution: "
+		      << result_arma_fft_conv.first.count()
+			  << "\n\tmaximum difference of result: "
+			  << arma::abs(result_conv.second - result_arma_fft_conv.second).max()
+			  << std::endl;
+
+	auto result_arma_conv = ArmadilloConv(sig, ir);
+	std::cout << "Armadillo convolution: "
+		      << result_arma_conv.first.count()
+			  << "\n\tmaximum difference of result: "
+			  << arma::abs(result_conv.second - result_arma_conv.second).max()
+			  << std::endl;
 }
