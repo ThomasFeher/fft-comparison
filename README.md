@@ -3,10 +3,12 @@ compare different FFT implementations
 
 # Latest results
 
-Armadillo FFT: 0.0218167
-Armadillo iFFT: 0.016414
-Armadillo FFT-Pow2-convolution: 7.97954
-Armadillo FFT-convolution: 377.724
-Armadillo convolution: 442.267
-convolution: 446.567
+Armadillo FFT: 3.47961
+convolution: 456.267
+Armadillo FFT-Pow2-convolution: 8.84839
+        maximum difference of result: 0.0197754
+Armadillo FFT-convolution: 364.61
+        maximum difference of result: 0.0200195
+Armadillo convolution: 442.617
+        maximum difference of result: 0
 
