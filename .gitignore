@@ -5,6 +5,9 @@
 # build directories
 build*/
 
+# YouCompleteMe files
+.ycm_extra_conf.pyc
+
 # Compiled Object files
 *.slo
 *.lo
