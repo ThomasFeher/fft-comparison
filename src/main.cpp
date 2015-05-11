@@ -7,6 +7,7 @@
 
 using std::chrono::high_resolution_clock;
 using std::chrono::duration;
+using AudioVec = std::vector<float>;
 
 namespace {
 	uint32_t num = 1;
@@ -30,7 +31,7 @@ std::pair<duration<double>, arma::fvec> Convolution(arma::fvec sig, arma::fvec i
 			}
 		}
 	}
-	std::vector<float> output_copy = arma::conv_to<std::vector<float>>::from(output);
+	AudioVec output_copy = arma::conv_to<AudioVec>::from(output);
 	auto end = high_resolution_clock::now();
 
 	return std::make_pair(end - begin, output);
@@ -43,7 +44,7 @@ std::pair<duration<double>, arma::fvec> ArmadilloConv(arma::fvec sig, arma::fvec
 	for (uint32_t cnt=0;cnt<::num;++cnt) {
 		output = arma::conv(sig, ir);
 	}
-	std::vector<float> output_copy = arma::conv_to<std::vector<float>>::from(output);
+	AudioVec output_copy = arma::conv_to<AudioVec>::from(output);
 	auto end = high_resolution_clock::now();
 
 	return std::make_pair(end - begin, output);
@@ -57,7 +58,7 @@ std::pair<duration<double>, arma::fvec> ArmadilloFftConv(arma::fvec sig, arma::f
 	for (uint32_t cnt=0;cnt<::num;++cnt) {
 		output = arma::ifft(arma::fft(sig, size) % arma::fft(ir, size));
 	}
-	std::vector<float> output_copy = arma::conv_to<std::vector<float>>::from(arma::real(output));
+	AudioVec output_copy = arma::conv_to<AudioVec>::from(arma::real(output));
 	auto end = high_resolution_clock::now();
 
 	return std::make_pair(end - begin, arma::real(output));
@@ -71,7 +72,7 @@ std::pair<duration<double>, arma::fvec> ArmadilloFftPow2Conv(arma::fvec sig, arm
 	for (uint32_t cnt=0;cnt<::num;++cnt) {
 		output = arma::ifft(arma::fft(sig,size) % arma::fft(ir,size));
 	}
-	std::vector<float> output_copy = arma::conv_to<std::vector<float>>::from(arma::real(output));
+	AudioVec output_copy = arma::conv_to<AudioVec>::from(arma::real(output));
 	auto end = high_resolution_clock::now();
 
 	return std::make_pair(end - begin, arma::real(output.subvec(0, ::conv_sig_size + ::conv_ir_size - 2)));
@@ -87,7 +88,7 @@ std::pair<duration<double>,arma::fvec> ArmadilloFft(arma::fvec input) {
 		output_td = arma::ifft(output_fd);
 
 	}
-	std::vector<float> output_copy = arma::conv_to<std::vector<float>>::from(arma::real(output_td));
+	AudioVec output_copy = arma::conv_to<AudioVec>::from(arma::real(output_td));
 	auto end = high_resolution_clock::now();
 
 	return std::make_pair(end - begin,arma::real(output_td));
