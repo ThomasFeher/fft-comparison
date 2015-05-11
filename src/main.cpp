@@ -5,9 +5,17 @@
 
 #include <armadillo>
 
+#include "AudioFFT.h"
+
 using std::chrono::high_resolution_clock;
 using std::chrono::duration;
 using AudioVec = std::vector<float>;
+using audiofft::AudioFFT;
+using FftwData = std::tuple<AudioFFT& // fft class
+                           ,AudioVec& // input vector
+						   ,AudioVec& // real vector
+						   ,AudioVec& // imag vector
+						   ,AudioVec&>; // output vector
 
 namespace {
 	uint32_t num = 1;
@@ -48,6 +56,29 @@ std::pair<duration<double>, arma::fvec> ArmadilloConv(arma::fvec sig, arma::fvec
 	auto end = high_resolution_clock::now();
 
 	return std::make_pair(end - begin, output);
+}
+
+duration<double> FftwConv(FftwData sig, FftwData ir) {
+	auto sig_in = std::get<1>(sig);
+	auto sig_re = std::get<2>(sig);
+	auto sig_im = std::get<3>(sig);
+	auto ir_in = std::get<1>(ir);
+	auto ir_re = std::get<2>(ir);
+	auto ir_im = std::get<3>(ir);
+	AudioVec re (sig_re.size());
+	AudioVec im (sig_re.size());
+
+	auto begin = high_resolution_clock::now();
+	std::get<0>(sig).fft(sig_in.data(), sig_re.data(), sig_im.data());
+	std::get<0>(ir).fft(ir_in.data(), ir_re.data(), ir_im.data());
+	for (size_t cnt=0;cnt<sig_re.size();++cnt) {
+		re[cnt] = sig_re[cnt]*ir_re[cnt] - sig_im[cnt]*ir_im[cnt];
+		im[cnt] = sig_re[cnt]*ir_im[cnt] + sig_im[cnt]*ir_re[cnt];
+	}
+	std::get<0>(sig).ifft(std::get<4>(sig).data(), re.data(), im.data());
+	auto end = high_resolution_clock::now();
+
+	return end - begin;
 }
 
 std::pair<duration<double>, arma::fvec> ArmadilloFftConv(arma::fvec sig, arma::fvec ir) {
@@ -100,6 +131,24 @@ int main(int argc, char* argv[]) {
 	arma::fvec sig {arma::randn<arma::fvec>(::conv_sig_size)};
 	arma::fvec ir {arma::randn<arma::fvec>(::conv_ir_size)};
 
+	// init FFTW
+	size_t fft_size (pow(2,ceil(log2(::conv_sig_size + ::conv_ir_size - 1))));
+	AudioVec sig_vec  (fft_size, 0);
+	std::copy_n(sig_vec.begin(), ::conv_sig_size, sig.begin());
+	AudioVec ir_vec (fft_size, 0);
+	std::copy_n(ir_vec.begin(), ::conv_ir_size, ir.begin());
+	AudioVec sig_re(AudioFFT::ComplexSize(fft_size)); 
+	AudioVec ir_re(AudioFFT::ComplexSize(fft_size));
+	AudioVec sig_im(AudioFFT::ComplexSize(fft_size)); 
+	AudioVec ir_im(AudioFFT::ComplexSize(fft_size)); 
+	AudioVec output(fft_size);
+	AudioFFT fft_sig;
+	fft_sig.init(fft_size);
+	AudioFFT fft_ir;
+	fft_ir.init(fft_size);
+	FftwData sig_data = std::forward_as_tuple(fft_sig, sig_vec, sig_re, sig_im, output);
+	FftwData ir_data = std::forward_as_tuple(fft_ir, ir_vec, ir_re, ir_im, output);
+
 	auto result_arma_fft = ArmadilloFft(sig);
 	std::cout << "Armadillo FFT: " << result_arma_fft.first.count() << std::endl;
 
@@ -109,10 +158,14 @@ int main(int argc, char* argv[]) {
 			  << std::endl;
 
 	auto result_arma_fft_pow2_conv = ArmadilloFftPow2Conv(sig, ir);
+	auto result_fftw_pow2_conv = FftwConv( sig_data, ir_data);
 	std::cout << "Armadillo FFT-Pow2-convolution: "
 		      << result_arma_fft_pow2_conv.first.count()
 			  << "\n\tmaximum difference of result: "
 			  << arma::abs(result_conv.second - result_arma_fft_pow2_conv.second).max()
+			  << std::endl;
+	std::cout << "FFTW Pow2-convolution: "
+		      << result_fftw_pow2_conv.count()
 			  << std::endl;
 
 	auto result_arma_fft_conv = ArmadilloFftConv(sig, ir);

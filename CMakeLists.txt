@@ -9,13 +9,16 @@ include_directories(${ARMADILLO_INCLUDE_DIRS})
 
 find_package(FFTW REQUIRED)
 include_directories(${FFTW_INCLUDE_DIRS})
+add_definitions(-DAUDIOFFT_FFTW3)
 
 add_executable(fft-comparison
 	src/main.cpp
+	src/AudioFFT.cpp
 	)
 
 set_property(TARGET fft-comparison PROPERTY CXX_STANDARD 11)
 
 target_link_libraries(fft-comparison
 	${ARMADILLO_LIBRARIES}
+	${FFTW_LIBRARIES}
 	)
