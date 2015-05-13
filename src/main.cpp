@@ -2,6 +2,8 @@
 #include <iostream>
 #include <vector>
 #include <utility> // std::pair
+#include <algorithm> // std::max_element()
+#include <string> // std::to_string()
 
 #include <armadillo>
 
@@ -159,6 +161,14 @@ int main(int argc, char* argv[]) {
 
 	auto result_arma_fft_pow2_conv = ArmadilloFftPow2Conv(sig, ir);
 	auto result_fftw_pow2_conv = FftwConv( sig_data, ir_data);
+	AudioVec diff;
+	std::transform(
+			result_conv.second.begin()
+			, result_conv.second.end()
+			, std::get<4>(sig_data).begin()
+			, std::back_inserter(diff)
+			, [](float a, float b) { return fabs(a-b); }
+			);
 	std::cout << "Armadillo FFT-Pow2-convolution: "
 		      << result_arma_fft_pow2_conv.first.count()
 			  << "\n\tmaximum difference of result: "
@@ -166,6 +176,8 @@ int main(int argc, char* argv[]) {
 			  << std::endl;
 	std::cout << "FFTW Pow2-convolution: "
 		      << result_fftw_pow2_conv.count()
+			  << "\n\tmaximum difference of result: "
+			  << std::to_string(*std::max_element(diff.begin(), diff.end()))
 			  << std::endl;
 
 	auto result_arma_fft_conv = ArmadilloFftConv(sig, ir);
