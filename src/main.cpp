@@ -133,7 +133,7 @@ int main(int argc, char* argv[]) {
 	arma::fvec sig {arma::randn<arma::fvec>(::conv_sig_size)};
 	arma::fvec ir {arma::randn<arma::fvec>(::conv_ir_size)};
 
-	std::cout << "initializing FFTW" << std::endl;
+	std::cout << "initializing FFTW";
 	size_t fft_size (pow(2,ceil(log2(::conv_sig_size + ::conv_ir_size - 1))));
 	AudioVec sig_vec  (fft_size, 0);
 	std::copy_n(sig_vec.begin(), ::conv_sig_size, sig.begin());
@@ -148,29 +148,29 @@ int main(int argc, char* argv[]) {
 	auto begin = high_resolution_clock::now();
 	fft_sig.init(fft_size);
 	auto end = high_resolution_clock::now();
-	std::cout << (std::chrono::duration_cast<duration<double>>(end - begin)).count() << std::endl;
+	std::cout << "\n\tduration: " << (std::chrono::duration_cast<duration<double>>(end - begin)).count() << std::endl;
 	AudioFFT fft_ir;
 	fft_ir.init(fft_size);
 	FftwData sig_data = std::forward_as_tuple(fft_sig, sig_vec, sig_re, sig_im, output);
 	FftwData ir_data = std::forward_as_tuple(fft_ir, ir_vec, ir_re, ir_im, output);
 
-	std::cout << "Armadillo FFT: " << std::endl;
+	std::cout << "Armadillo FFT: ";
 	auto result_arma_fft = ArmadilloFft(sig);
-	std::cout << result_arma_fft.first.count() << std::endl;
+	std::cout << "\n\tduration: " << result_arma_fft.first.count() << std::endl;
 
 	// normal convolution, this is our reference output
-	std::cout << "convolution: " << std::endl;
+	std::cout << "convolution: ";
 	auto result_conv = Convolution(sig, ir);
-	std::cout << result_conv.first.count() << std::endl;
+	std::cout << "\n\tduration: " << result_conv.first.count() << std::endl;
 
-	std::cout << "Armadillo FFT-Pow2-convolution: " << std::endl;
+	std::cout << "Armadillo FFT-Pow2-convolution: ";
 	auto result_arma_fft_pow2_conv = ArmadilloFftPow2Conv(sig, ir);
-	std::cout << result_arma_fft_pow2_conv.first.count()
+	std::cout << "\n\tduration: " << result_arma_fft_pow2_conv.first.count()
 			  << "\n\tmaximum difference of result: "
 			  << arma::abs(result_conv.second - result_arma_fft_pow2_conv.second).max()
 			  << std::endl;
 
-	std::cout << "FFTW FFT-Pow2-convolution: " << std::endl;
+	std::cout << "FFTW FFT-Pow2-convolution: ";
 	auto result_fftw_pow2_conv = FftwConv( sig_data, ir_data);
 	AudioVec diff;
 	std::transform(
@@ -180,21 +180,21 @@ int main(int argc, char* argv[]) {
 			, std::back_inserter(diff)
 			, [](float a, float b) { return fabs(a-b); }
 			);
-	std::cout << result_fftw_pow2_conv.count()
+	std::cout << "\n\tduration: " << result_fftw_pow2_conv.count()
 			  << "\n\tmaximum difference of result: "
 			  << std::to_string(*std::max_element(diff.begin(), diff.end()))
 			  << std::endl;
 
 	std::cout << "Armadillo FFT-convolution: ";
 	auto result_arma_fft_conv = ArmadilloFftConv(sig, ir);
-	std::cout << result_arma_fft_conv.first.count()
+	std::cout << "\n\tduration: " << result_arma_fft_conv.first.count()
 			  << "\n\tmaximum difference of result: "
 			  << arma::abs(result_conv.second - result_arma_fft_conv.second).max()
 			  << std::endl;
 
 	std::cout << "Armadillo convolution: ";
 	auto result_arma_conv = ArmadilloConv(sig, ir);
-	std::cout << result_arma_conv.first.count()
+	std::cout << "\n\tduration: " << result_arma_conv.first.count()
 			  << "\n\tmaximum difference of result: "
 			  << arma::abs(result_conv.second - result_arma_conv.second).max()
 			  << std::endl;
