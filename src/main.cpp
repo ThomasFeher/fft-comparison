@@ -7,7 +7,7 @@
 
 #include <armadillo>
 
-#include "AudioFFT.h"
+#include "AudioFFT/AudioFFT.h"
 
 using std::chrono::high_resolution_clock;
 using std::chrono::duration;

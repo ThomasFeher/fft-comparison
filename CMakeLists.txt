@@ -13,7 +13,7 @@ add_definitions(-DAUDIOFFT_FFTW3)
 
 add_executable(fft-comparison
 	src/main.cpp
-	src/AudioFFT.cpp
+	src/AudioFFT/AudioFFT.cpp
 	)
 
 set_property(TARGET fft-comparison PROPERTY CXX_STANDARD 11)
