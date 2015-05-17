@@ -136,9 +136,9 @@ int main(int argc, char* argv[]) {
 	std::cout << "initializing FFTW";
 	size_t fft_size (pow(2,ceil(log2(::conv_sig_size + ::conv_ir_size - 1))));
 	AudioVec sig_vec  (fft_size, 0);
-	std::copy_n(sig_vec.begin(), ::conv_sig_size, sig.begin());
+	std::copy_n(sig.begin(), ::conv_sig_size, sig_vec.begin());
 	AudioVec ir_vec (fft_size, 0);
-	std::copy_n(ir_vec.begin(), ::conv_ir_size, ir.begin());
+	std::copy_n(ir.begin(), ::conv_ir_size, ir_vec.begin());
 	AudioVec sig_re(AudioFFT::ComplexSize(fft_size)); 
 	AudioVec ir_re(AudioFFT::ComplexSize(fft_size));
 	AudioVec sig_im(AudioFFT::ComplexSize(fft_size)); 
