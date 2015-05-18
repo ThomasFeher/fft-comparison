@@ -127,6 +127,18 @@ std::pair<duration<double>,arma::fvec> ArmadilloFft(arma::fvec input) {
 	return std::make_pair(end - begin,arma::real(output_td));
 }
 
+std::tuple<size_t,size_t,uint32_t> CalcSizes(uint32_t ir_size, uint32_t sig_size, uint32_t min_block_size) {
+	size_t sig_block_size = 0;
+	while (sig_block_size < min_block_size) {
+		size_t fft_size = pow(2,ceil(log2(ir_size)));
+		sig_block_size = fft_size - ir_size + 1;
+	}
+
+	uint32_t block_num = sig_size / sig_block_size;
+
+	return std::make_tuple(sig_block_size, fft_size, block_num);
+}
+
 int main(int argc, char* argv[]) {
 
 	std::cout << "generating input signals" << std::endl;
