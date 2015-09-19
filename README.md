@@ -3,6 +3,7 @@ compare different FFT implementations
 
 # Latest results
 
+```
 generating input signals
 initializing FFTW
         duration: 637.193
@@ -22,3 +23,4 @@ Armadillo FFT-convolution:
 Armadillo convolution:
         duration: 487.721
         maximum difference of result: 0
+```
